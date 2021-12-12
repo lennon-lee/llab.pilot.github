@@ -1,0 +1,148 @@
+<html>
+  <head>
+    <title>frontend test</title>
+    <style>
+      #searchContainer {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        margin-top: 150px;
+      }
+      #logo {
+        font-size: 140px;
+        font-weight: bold;
+        color: #494747;
+      }
+      #searchWrap {
+        display: flex;
+        border: 1px solid gray;
+        width: 600px;
+        height: 40px;
+        border-radius: 20px; 
+        box-shadow: 5px 5px 5px grey;
+      }
+      #searchWrap:focus-within {
+        border-color: lightsteelblue;
+        box-shadow: 5px 5px 5px lightsteelblue;
+      }
+      #searchWrap svg {
+        position: relative;
+        left: 15px;
+        top: 11px;
+      }
+      #searchWrap input {
+        position: relative;
+        left: 20px;
+        top: 5px;
+        border: none;
+        outline: none;
+        width: 550px;
+        height: 28px;
+      }
+      #searchWrap input:focus-within {
+        border: none;
+        border-color: red;
+      }
+      #repositories {
+        display: flex;
+        flex-direction: column;
+        width: 600px;
+        margin-top: 20px;
+        line-height: 25px;
+      }
+      .repositorieItem {
+        cursor:default;
+        padding-left: 35px;
+      }
+      .repositorieItem:hover {
+        background-color: #e9e9e9;
+        border-radius: 10px;
+      }
+      .repositorieItem a {
+        text-decoration: none;
+        color: black;    
+      }
+    </style>
+    <script>
+      // document ready
+      document.addEventListener("DOMContentLoaded", function() {
+        const searchElement = document.getElementById('search');
+
+        // input search keyup event
+        let searchTimeout = null;
+        searchElement.addEventListener("keyup", function(e) {
+
+          clearTimeout(searchTimeout);
+          searchTimeout = setTimeout(function (){
+            searchRepositories(searchElement.value);
+          }, 300);
+        });
+
+        // input search focus event
+        searchElement.addEventListener("focus", function() {
+          if (searchElement.value) {
+            searchRepositories(searchElement.value);
+          }
+        });
+
+        // input search blur event
+        searchElement.addEventListener("blur", function(e) {
+          if (!e.relatedTarget) {
+            const repositoriesElement = document.getElementById('repositories');
+            repositoriesElement.innerHTML = '';
+          }
+        });
+      });
+      
+      async function searchRepositories(query) {
+        try {
+          const response = await fetch('https://api.github.com/search/repositories?q='+query+'&per_page=10');
+          const json = await response.json();
+          const repositoriesElement = document.getElementById('repositories');
+          let repositoriesData = [];
+          if (json.items && json.items.length > 0) {
+            repositoriesData = json.items.map(obj => {
+              return {
+                name: obj.name, 
+                url: obj.html_url
+              }
+            });
+            repositoriesElement.innerHTML = filterSearchResults(query, repositoriesData);  
+          } else if (json.message) {
+            console.log(json.message);
+          }
+          else {
+            repositoriesElement.innerHTML = '';
+          }
+        } catch(err) {
+          console.log(err);
+        }
+      }
+
+      function filterSearchResults(keyword, resultData) {
+        const searchResults = resultData.filter(element => element.name.indexOf(keyword) > -1);
+        let html = '';
+
+        const regex = new RegExp(keyword, 'gi');
+        searchResults.forEach(item => {
+          const title = item.name.replace(regex, '<mark class="highlight">$&</mark>');
+          html += '<div class="repositorieItem"><a href="'+item.url+'">' + title + '</a></div>';
+        });
+        return html;
+      }
+    </script>
+  </head>
+  <body>
+    <div id="searchContainer">
+      <div id="logo">Github</div>
+      <div id="searchWrap">
+        <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true" class="octicon octicon-search">
+          <path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"></path>
+        </svg>
+        <input type="text" id="search" placeholder="Find a repository" />  
+      </div>
+      <div id="repositories">
+    </div>
+    </div>
+  </body>
+</html>
